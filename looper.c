@@ -17,6 +17,7 @@
  */
 
 #include <stdlib.h>
+#include <math.h>
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 
 #define URI "http://shaji.in/plugins/looper"
@@ -38,10 +39,10 @@ typedef enum {
 
 typedef struct {
 	// Port buffers
-	float * gain;
+	const float * gain;
     float * toggle_play ;
     float * toggle_rec ;
-	float * input;
+	const float * input;
 	float * output;
 	float * buffer_size_control ;
 	float * buffer ;
@@ -71,7 +72,7 @@ connect_port(LV2_Handle instance,
 
 	switch ((PortIndex)port) {
 	case GAIN:
-		looper->gain = (const float*)data;
+		looper->gain = ( float*)data;
 		break;
 	case INPUT:
 		looper->input = (const float*)data;
@@ -110,7 +111,7 @@ activate(LV2_Handle instance) {
 static void
 run(LV2_Handle instance, uint32_t n_samples)
 {
-	const Looper * looper = (const Looper *)instance;
+	Looper * looper = (Looper *)instance;
 
 	const float        gain   = *(looper->gain);
 	const float* const input  = looper->input;
@@ -119,7 +120,7 @@ run(LV2_Handle instance, uint32_t n_samples)
 
     if (* looper -> toggle_rec > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
-            buffer [looper -> counter] = input [pos] ;
+            looper -> buffer [looper -> counter] = input [pos] ;
             looper -> counter ++ ;
             if (looper -> counter > looper -> buffer_size) {
                 // * looper -> toggle_rec = 0 ;
@@ -129,20 +130,20 @@ run(LV2_Handle instance, uint32_t n_samples)
         }
     } else if (* looper -> toggle_play > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
-            if (counter < (* looper -> start / 100) * looper -> buffer_size) {
-                counter ++ ;
-            } else if (counter > (* looper -> end / 100) * looper -> buffer_size) {
-                counter ++ ;
-            } else if (looper -> buffer[counter] == -1) {
-                counter ++ ;
+            if (looper -> counter < (* looper -> start / 100) * looper -> buffer_size) {
+                looper -> counter ++ ;
+            } else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
+                looper -> counter ++ ;
+            } else if (looper -> buffer[looper -> counter] == -1) {
+                looper -> counter ++ ;
             } else {
                 output[pos] = looper -> buffer [looper -> counter] * coef;
                 looper -> counter ++ ;
             }
 
-            if (looper -> counter > looper -> buffer_size {
+            if (looper -> counter > looper -> buffer_size) {
                 looper -> counter = 0 ;
-            })
+            }
         }
     } else {
         if (looper -> counter > 0) {
@@ -153,4 +154,46 @@ run(LV2_Handle instance, uint32_t n_samples)
 
         looper -> counter = 0 ;
     }
+}
+
+static void
+deactivate(LV2_Handle instance) {
+    Looper * looper = (Looper *) instance ;
+    looper -> counter = 0 ;
+    looper -> buffer_size = 0 ;
+    free (looper -> buffer) ;
+
+}
+
+static void
+cleanup(LV2_Handle instance) {
+	free(instance);
+}
+
+static const void*
+extension_data(const char* uri)
+{
+	return NULL;
+}
+
+static const LV2_Descriptor descriptor = {
+	URI,
+	instantiate,
+	connect_port,
+	activate,
+	run,
+	deactivate,
+	cleanup,
+	extension_data
+};
+
+LV2_SYMBOL_EXPORT
+const LV2_Descriptor*
+lv2_descriptor(uint32_t index) {
+	switch (index) {
+        case 0:  
+            return &descriptor;
+        default: 
+            return NULL;
+	}
 }
