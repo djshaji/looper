@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 
-#define URI "http://shaji.in/plugins/eg-amp"
+#define URI "http://shaji.in/plugins/looper"
 
 /** Define a macro for converting a gain in dB to a coefficient. */
 #define DB_CO(g) ((g) > -90.0f ? powf(10.0f, (g) * 0.05f) : 0.0f)
@@ -43,11 +43,13 @@ typedef struct {
     float * toggle_rec ;
 	float * input;
 	float * output;
-	float * buffer_size ;
+	float * buffer_size_control ;
 	float * buffer ;
     float * start ;
     float * end ;
     int counter ;
+    int buffer_size ;
+    int recorded ;
 } Looper;
 
 static LV2_Handle
@@ -84,7 +86,7 @@ connect_port(LV2_Handle instance,
         looper -> toggle_rec = (float *) data ;
         break ;
     case BUFFER_SIZE:
-        looper -> buffer_size = (float *) data ;
+        looper -> buffer_size_control = (float *) data ;
         break ;
     case START:
         looper -> start = (float *) data ;
@@ -101,7 +103,8 @@ activate(LV2_Handle instance) {
     * looper -> start = 0 ;
     * looper -> end = 0 ;
     looper -> counter = 0 ;
-    looper -> buffer = malloc (* looper -> buffer_size * 1024) ;
+    looper -> buffer = malloc (* looper -> buffer_size_control * 1024) ;
+    looper -> buffer_size = * looper -> buffer_size_control * 1024 ;
 }
 
 static void
@@ -112,23 +115,42 @@ run(LV2_Handle instance, uint32_t n_samples)
 	const float        gain   = *(looper->gain);
 	const float* const input  = looper->input;
 	float* const       output = looper->output;
+    const float coef = DB_CO(* looper -> gain);
 
     if (* looper -> toggle_rec > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
             buffer [looper -> counter] = input [pos] ;
             looper -> counter ++ ;
-            if (looper -> counter > * looper -> buffer_size) {
-                * looper -> toggle_rec = 0 ;
+            if (looper -> counter > looper -> buffer_size) {
+                // * looper -> toggle_rec = 0 ;
                 looper -> counter = 0 ;
                 break ;
             }
         }
+    } else if (* looper -> toggle_play > 0) {
+        for (uint32_t pos = 0; pos < n_samples; pos++) {
+            if (counter < (* looper -> start / 100) * looper -> buffer_size) {
+                counter ++ ;
+            } else if (counter > (* looper -> end / 100) * looper -> buffer_size) {
+                counter ++ ;
+            } else if (looper -> buffer[counter] == -1) {
+                counter ++ ;
+            } else {
+                output[pos] = looper -> buffer [looper -> counter] * coef;
+                looper -> counter ++ ;
+            }
 
+            if (looper -> counter > looper -> buffer_size {
+                looper -> counter = 0 ;
+            })
+        }
+    } else {
+        if (looper -> counter > 0) {
+            for (int i = looper -> counter ; i < looper -> buffer_size ; i ++) {
+                looper -> buffer [i] = -1 ;
+            }
+        }
+
+        looper -> counter = 0 ;
     }
-
-	const float coef = DB_CO(gain);
-
-	for (uint32_t pos = 0; pos < n_samples; pos++) {
-		output[pos] = input[pos] * coef;
-	}
 }
