@@ -25,7 +25,7 @@
 
 /** Define a macro for converting a gain in dB to a coefficient. */
 #define DB_CO(g) ((g) > -90.0f ? powf(10.0f, (g) * 0.05f) : 0.0f)
-#define MAX_BUFFER 1024 * 256
+#define MAX_BUFFER 1024 * 512
 
 typedef enum {
 	TOGGLE_RECORD   = 0,
@@ -134,7 +134,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             //~ output [pos] = input [pos];
             looper -> buffer [looper -> counter] = input [pos] ;
             looper -> counter ++ ;
-            printf ("[rec] %d\t%d\n", looper -> counter, pos) ;
+            //~ printf ("[rec] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> counter > looper -> buffer_size) {
                 // * looper -> toggle_rec = 0 ;
                 looper -> counter = 0 ;
@@ -148,11 +148,13 @@ run(LV2_Handle instance, uint32_t n_samples)
             //} else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
                 //looper -> counter ++ ;
             //} 
-            printf ("[play] %d\t%d\n", looper -> counter, pos) ;
+            //~ printf ("[play] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> buffer[looper -> counter] != -1) {
                 output[pos] = looper -> buffer [looper -> counter] ;//* (input [pos] * .8);
                 //printf ("%d\t%d\n", pos, looper -> counter);
                 looper -> counter ++ ;
+            } else {
+                looper -> counter = 0 ;
             }
 
             if (looper -> counter > looper -> buffer_size) {
