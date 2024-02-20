@@ -25,7 +25,7 @@
 
 /** Define a macro for converting a gain in dB to a coefficient. */
 #define DB_CO(g) ((g) > -90.0f ? powf(10.0f, (g) * 0.05f) : 0.0f)
-#define MAX_BUFFER 1024 * 16
+#define MAX_BUFFER 1024 * 256
 
 typedef enum {
 	TOGGLE_RECORD   = 0,
@@ -115,6 +115,8 @@ activate(LV2_Handle instance) {
     //looper -> buffer = malloc (* looper -> buffer_size_control * 16) ;
     looper -> buffer_size = MAX_BUFFER ;
     looper -> buffer [0] = 1 ;
+    for (int i = 0 ; i < MAX_BUFFER; i ++)
+        looper -> buffer [i] = -1 ;
 }
 
 static void
@@ -129,13 +131,14 @@ run(LV2_Handle instance, uint32_t n_samples)
 
     if (* looper -> toggle_rec > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
-            output [pos] = input [pos];
+            //~ output [pos] = input [pos];
             looper -> buffer [looper -> counter] = input [pos] ;
             looper -> counter ++ ;
+            printf ("[rec] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> counter > looper -> buffer_size) {
                 // * looper -> toggle_rec = 0 ;
                 looper -> counter = 0 ;
-                break ;
+                //~ break ;
             }
         }
     } else if (* looper -> toggle_play > 0) {
@@ -145,10 +148,9 @@ run(LV2_Handle instance, uint32_t n_samples)
             //} else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
                 //looper -> counter ++ ;
             //} 
-            if (looper -> buffer[looper -> counter] == -1) {
-                looper -> counter = 0 ;
-            } else {
-                output[pos] = looper -> buffer [looper -> counter] * input [pos] /* * coef*/;
+            printf ("[play] %d\t%d\n", looper -> counter, pos) ;
+            if (looper -> buffer[looper -> counter] != -1) {
+                output[pos] = looper -> buffer [looper -> counter] ;//* (input [pos] * .8);
                 //printf ("%d\t%d\n", pos, looper -> counter);
                 looper -> counter ++ ;
             }
@@ -158,17 +160,16 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
     } else {
-        for (uint32_t pos = 0; pos < n_samples; pos++) {
-            output [pos] = input [pos];
-        }
+        //~ for (uint32_t pos = 0; pos < n_samples; pos++) {
+            //~ output [pos] = input [pos];
+        //~ }
 
-        if (looper -> counter > 0) {
-            for (int i = looper -> counter ; i < looper -> buffer_size ; i ++) {
-                looper -> buffer [i] = -1 ;
-            }
-        }
-
+        //~ if (looper -> counter > 0) {
+            //~ for (int i = looper -> counter ; i < looper -> buffer_size ; i ++) {
+                //~ looper -> buffer [i] = -1 ;
+            //~ }
         looper -> counter = 0 ;
+
     }
 }
 
