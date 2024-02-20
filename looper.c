@@ -22,10 +22,10 @@
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 
 #define URI "http://shaji.in/plugins/looper"
-//#define LOG fprintf (stderr, format, args)
 
 /** Define a macro for converting a gain in dB to a coefficient. */
 #define DB_CO(g) ((g) > -90.0f ? powf(10.0f, (g) * 0.05f) : 0.0f)
+#define MAX_BUFFER 1024 * 16
 
 typedef enum {
 	TOGGLE_RECORD   = 0,
@@ -48,7 +48,7 @@ typedef struct {
 	const float * input;
 	float * output;
 	float * buffer_size_control ;
-	float * buffer ;
+	float  buffer [MAX_BUFFER+1];
     float * start ;
     float * end ;
     int counter ;
@@ -112,8 +112,9 @@ activate(LV2_Handle instance) {
     * looper -> start = 0 ;
     * looper -> end = 0 ;
     looper -> counter = 0 ;
-    looper -> buffer = malloc (* looper -> buffer_size_control * 16) ;
-    looper -> buffer_size = * looper -> buffer_size_control * 16 ;
+    //looper -> buffer = malloc (* looper -> buffer_size_control * 16) ;
+    looper -> buffer_size = MAX_BUFFER ;
+    looper -> buffer [0] = 1 ;
 }
 
 static void
@@ -139,14 +140,16 @@ run(LV2_Handle instance, uint32_t n_samples)
         }
     } else if (* looper -> toggle_play > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
-            if (looper -> counter < (* looper -> start / 100) * looper -> buffer_size) {
-                looper -> counter ++ ;
-            } else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
-                looper -> counter ++ ;
-            } else if (looper -> buffer[looper -> counter] == -1) {
-                looper -> counter ++ ;
+            //if (looper -> counter < (* looper -> start / 100) * looper -> buffer_size) {
+                //looper -> counter ++ ;
+            //} else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
+                //looper -> counter ++ ;
+            //} 
+            if (looper -> buffer[looper -> counter] == -1) {
+                looper -> counter = 0 ;
             } else {
                 output[pos] = looper -> buffer [looper -> counter] * input [pos] /* * coef*/;
+                //printf ("%d\t%d\n", pos, looper -> counter);
                 looper -> counter ++ ;
             }
 
@@ -174,7 +177,7 @@ deactivate(LV2_Handle instance) {
     Looper * looper = (Looper *) instance ;
     looper -> counter = 0 ;
     looper -> buffer_size = 0 ;
-    free (looper -> buffer) ;
+    //free (looper -> buffer) ;
 
 }
 
