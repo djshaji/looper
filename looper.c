@@ -71,6 +71,15 @@ instantiate(const LV2_Descriptor*     descriptor,
             const LV2_Feature* const* features)
 {
 	Looper * looper = (Looper*)malloc(sizeof(Looper));
+    //~ * looper -> start = 0 ;
+    //~ * looper -> end = 0 ;
+    //~ looper -> counter = 0 ;
+    //~ //looper -> buffer = malloc (* looper -> buffer_size_control * 16) ;
+    //~ looper -> buffer_size = MAX_BUFFER ;
+    //~ looper -> buffer [0] = 1 ;
+    //~ for (int i = 0 ; i < MAX_BUFFER; i ++)
+        //~ looper -> buffer [i] = -1 ;
+        
 	return (LV2_Handle)looper;
 }
 
@@ -98,7 +107,7 @@ connect_port(LV2_Handle instance,
         looper -> toggle_rec = (float *) data ;
         break ;
     case BUFFER_SIZE:
-        looper -> buffer_size_control = (float *) data ;
+        //~ looper -> buffer_size_control = (float *) data ;
         break ;
     case START:
         looper -> start = (float *) data ;
@@ -117,8 +126,8 @@ connect_port(LV2_Handle instance,
 static void
 activate(LV2_Handle instance) {
     Looper * looper = (Looper *) instance ;
-    * looper -> start = 0 ;
-    * looper -> end = 0 ;
+    //~ * looper -> start = 0 ;
+    //~ * looper -> end = 0 ;
     looper -> counter = 0 ;
     //looper -> buffer = malloc (* looper -> buffer_size_control * 16) ;
     looper -> buffer_size = MAX_BUFFER ;
@@ -142,7 +151,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             output [pos] = input [pos];
             looper -> buffer [looper -> counter] = input [pos] ;
             looper -> counter ++ ;
-            LOGD ("[rec] %d\t%d\n", looper -> counter, pos) ;
+            //~ LOGD ("[rec] %d\t%d\t%d\n", looper -> counter, pos, looper->buffer_size) ;
             if (looper -> counter > looper -> buffer_size) {
                 // * looper -> toggle_rec = 0 ;
                 looper -> counter = 0 ;
@@ -156,7 +165,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             //} else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
                 //looper -> counter ++ ;
             //} 
-            LOGD ("[play] %d\t%d\n", looper -> counter, pos) ;
+            //~ LOGD ("[play] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> buffer[looper -> counter] != -1) {
                 output[pos] = looper -> buffer [looper -> counter];//; * input [pos] ;
                 //printf ("%d\t%d\n", pos, looper -> counter);
