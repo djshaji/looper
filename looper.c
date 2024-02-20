@@ -21,6 +21,14 @@
 #include <math.h>
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 
+#ifdef ANDROID
+    #include <android/log.h>
+    #define MODULE_NAME "LOOPER"
+    #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, MODULE_NAME, __VA_ARGS__)
+#else
+    #define LOGD(...) printf(__VA_ARGS__)
+#endif
+
 #define URI "http://shaji.in/plugins/looper"
 
 /** Define a macro for converting a gain in dB to a coefficient. */
@@ -131,10 +139,10 @@ run(LV2_Handle instance, uint32_t n_samples)
 
     if (* looper -> toggle_rec > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
-            //~ output [pos] = input [pos];
+            output [pos] = input [pos];
             looper -> buffer [looper -> counter] = input [pos] ;
             looper -> counter ++ ;
-            //~ printf ("[rec] %d\t%d\n", looper -> counter, pos) ;
+            LOGD ("[rec] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> counter > looper -> buffer_size) {
                 // * looper -> toggle_rec = 0 ;
                 looper -> counter = 0 ;
@@ -148,9 +156,9 @@ run(LV2_Handle instance, uint32_t n_samples)
             //} else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
                 //looper -> counter ++ ;
             //} 
-            //~ printf ("[play] %d\t%d\n", looper -> counter, pos) ;
+            LOGD ("[play] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> buffer[looper -> counter] != -1) {
-                output[pos] = looper -> buffer [looper -> counter] ;//* (input [pos] * .8);
+                output[pos] = looper -> buffer [looper -> counter];//; * input [pos] ;
                 //printf ("%d\t%d\n", pos, looper -> counter);
                 looper -> counter ++ ;
             } else {
@@ -162,16 +170,15 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
     } else {
-        //~ for (uint32_t pos = 0; pos < n_samples; pos++) {
-            //~ output [pos] = input [pos];
-        //~ }
+        for (uint32_t pos = 0; pos < n_samples; pos++) {
+            output [pos] = input [pos];
+        }
 
         //~ if (looper -> counter > 0) {
             //~ for (int i = looper -> counter ; i < looper -> buffer_size ; i ++) {
                 //~ looper -> buffer [i] = -1 ;
             //~ }
         looper -> counter = 0 ;
-
     }
 }
 
