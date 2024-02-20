@@ -16,11 +16,13 @@
  * 
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 
 #define URI "http://shaji.in/plugins/looper"
+//#define LOG fprintf (stderr, format, args)
 
 /** Define a macro for converting a gain in dB to a coefficient. */
 #define DB_CO(g) ((g) > -90.0f ? powf(10.0f, (g) * 0.05f) : 0.0f)
@@ -39,7 +41,7 @@ typedef enum {
 
 typedef struct {
 	// Port buffers
-	const float * gain;
+	float * gain;
     float * toggle_play ;
     float * toggle_rec ;
     float * file_buffer ;
@@ -96,6 +98,11 @@ connect_port(LV2_Handle instance,
     case END:
         looper -> end = (float *) data ;
         break ;
+    case TOGGLE_FILE:
+        looper -> file_buffer = (float *) data ;
+        break ;
+    default:
+        break ;
 	}
 }
 
@@ -105,8 +112,8 @@ activate(LV2_Handle instance) {
     * looper -> start = 0 ;
     * looper -> end = 0 ;
     looper -> counter = 0 ;
-    looper -> buffer = malloc (* looper -> buffer_size_control * 1024) ;
-    looper -> buffer_size = * looper -> buffer_size_control * 1024 ;
+    looper -> buffer = malloc (* looper -> buffer_size_control * 16) ;
+    looper -> buffer_size = * looper -> buffer_size_control * 16 ;
 }
 
 static void
@@ -121,6 +128,7 @@ run(LV2_Handle instance, uint32_t n_samples)
 
     if (* looper -> toggle_rec > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
+            output [pos] = input [pos];
             looper -> buffer [looper -> counter] = input [pos] ;
             looper -> counter ++ ;
             if (looper -> counter > looper -> buffer_size) {
@@ -138,7 +146,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             } else if (looper -> buffer[looper -> counter] == -1) {
                 looper -> counter ++ ;
             } else {
-                output[pos] = looper -> buffer [looper -> counter] * coef;
+                output[pos] = looper -> buffer [looper -> counter] * input [pos] /* * coef*/;
                 looper -> counter ++ ;
             }
 
@@ -147,6 +155,10 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
     } else {
+        for (uint32_t pos = 0; pos < n_samples; pos++) {
+            output [pos] = input [pos];
+        }
+
         if (looper -> counter > 0) {
             for (int i = looper -> counter ; i < looper -> buffer_size ; i ++) {
                 looper -> buffer [i] = -1 ;
