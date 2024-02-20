@@ -167,7 +167,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             //} 
             //~ LOGD ("[play] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> buffer[looper -> counter] != -1) {
-                output[pos] = looper -> buffer [looper -> counter];//; * input [pos] ;
+                output[pos] = looper -> buffer [looper -> counter] + input [pos] ;
                 //printf ("%d\t%d\n", pos, looper -> counter);
                 looper -> counter ++ ;
             } else {
