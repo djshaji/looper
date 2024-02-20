@@ -42,6 +42,7 @@ typedef struct {
 	const float * gain;
     float * toggle_play ;
     float * toggle_rec ;
+    float * file_buffer ;
 	const float * input;
 	float * output;
 	float * buffer_size_control ;
