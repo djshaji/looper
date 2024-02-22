@@ -92,7 +92,7 @@ connect_port(LV2_Handle instance,
 {
 	Looper* looper = (Looper*)instance;
 
-	switch ((PortIndex)port) {
+	switch ((int)port) {
 	case GAIN:
 		looper->gain = ( float*)data;
 		break;
