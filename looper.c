@@ -56,7 +56,7 @@ typedef struct {
     float * file_buffer ;
 	const float * input;
 	float * output;
-	float * buffer_size_control ;
+	int * buffer_size_control ;
 	float  buffer [MAX_BUFFER+1];
     //~ float * buffer ;
     float * start ;
@@ -91,8 +91,9 @@ connect_port(LV2_Handle instance,
              void*      data)
 {
 	Looper* looper = (Looper*)instance;
+	float * d ;
 
-	switch ((int)port) {
+	switch ((PortIndex)port) {
 	case GAIN:
 		looper->gain = ( float*)data;
 		break;
@@ -102,26 +103,42 @@ connect_port(LV2_Handle instance,
 	case OUTPUT:
 		looper->output = (float*)data;
 		break;
-    case TOGGLE_PLAY:
-        looper -> toggle_play = (float *) data ;
-        break ;
-    case TOGGLE_RECORD:
-        looper -> toggle_rec = (float *) data ;
-        break ;
-    case BUFFER_SIZE:
-        looper -> buffer_size_control = (float *) data ;
-        break ;
-    case START:
-        looper -> start = (float *) data ;
-        break ;
-    case END:
-        looper -> end = (float *) data ;
-        break ;
-    case TOGGLE_FILE:
-        looper -> file_buffer = (float *) data ;
-        break ;
-    default:
-        break ;
+	case TOGGLE_PLAY:
+	    looper -> toggle_play = (float *) data ;
+	    break ;
+	case TOGGLE_RECORD:
+	    looper -> toggle_rec = (float *) data ;
+	    break ;
+	case BUFFER_SIZE:
+	    looper -> buffer_size_control = (int *) data ;
+	    break ;
+	case START:
+	    looper -> start = (float *) data ;
+	    break ;
+	case END:
+	    looper -> end = (float *) data ;
+	    break ;
+	case TOGGLE_FILE:
+	    d = (float *) data ;
+	    LOGD ("buffer size: %d", *looper -> buffer_size_control);
+	    for (int i = 0 ; i < * looper -> buffer_size_control; i ++) {
+		looper -> buffer [i] = d [i] ;
+		looper -> recorded = i ;
+		if (i >= looper -> buffer_size)
+		    break ;
+	    }
+	    
+	    LOGD ("copied %d samples", looper -> recorded);
+	    if (looper -> recorded < looper -> buffer_size) {
+		for (int i = looper -> recorded ; i < looper -> buffer_size ; i ++) {
+		    looper -> buffer [i] = -1;
+		}
+	    }
+	    
+	    looper -> counter = looper -> recorded ;
+	    break ;
+	default:
+	    break ;
 	}
 }
 
@@ -178,7 +195,7 @@ run(LV2_Handle instance, uint32_t n_samples)
                 looper -> counter = 0;
             }
             //~ LOGD ("[play] %d\t%d\n", looper -> counter, pos) ;
-            if (looper -> buffer[looper -> counter] != -1) {
+            if (looper -> counter < looper -> recorded) {
                 output[pos] = (looper -> buffer [looper -> counter] * gain ) + input [pos] ;
                 //printf ("%d\t%d\n", pos, looper -> counter);
                 looper -> counter ++ ;
