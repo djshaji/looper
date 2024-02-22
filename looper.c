@@ -21,7 +21,8 @@
 #include <math.h>
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 
-#ifdef ANDROID
+// ha ha
+#ifdef __ANDROID__
     #include <android/log.h>
     #define MODULE_NAME "LOOPER"
     #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, MODULE_NAME, __VA_ARGS__)
@@ -145,6 +146,8 @@ run(LV2_Handle instance, uint32_t n_samples)
 	const float* const input  = looper->input;
 	float* const       output = looper->output;
     const float coef = DB_CO(* looper -> gain);
+    
+    //~ LOGD ("gain %f\tstart %f\tend %f", gain, *looper -> start, *looper -> end);
 
     if (* looper -> toggle_rec > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
@@ -160,14 +163,14 @@ run(LV2_Handle instance, uint32_t n_samples)
         }
     } else if (* looper -> toggle_play > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
-            //if (looper -> counter < (* looper -> start / 100) * looper -> buffer_size) {
-                //looper -> counter ++ ;
-            //} else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
-                //looper -> counter ++ ;
-            //} 
+            if (looper -> counter < (* looper -> start / 100) * looper -> buffer_size) {
+                looper -> counter ++ ;
+            } else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
+                looper -> counter ++ ;
+            } 
             //~ LOGD ("[play] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> buffer[looper -> counter] != -1) {
-                output[pos] = looper -> buffer [looper -> counter] + input [pos] ;
+                output[pos] = (looper -> buffer [looper -> counter] * gain ) + input [pos] ;
                 //printf ("%d\t%d\n", pos, looper -> counter);
                 looper -> counter ++ ;
             } else {
