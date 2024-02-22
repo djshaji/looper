@@ -58,6 +58,7 @@ typedef struct {
 	float * output;
 	float * buffer_size_control ;
 	float  buffer [MAX_BUFFER+1];
+    //~ float * buffer ;
     float * start ;
     float * end ;
     int counter ;
@@ -108,7 +109,7 @@ connect_port(LV2_Handle instance,
         looper -> toggle_rec = (float *) data ;
         break ;
     case BUFFER_SIZE:
-        //~ looper -> buffer_size_control = (float *) data ;
+        looper -> buffer_size_control = (float *) data ;
         break ;
     case START:
         looper -> start = (float *) data ;
@@ -130,10 +131,14 @@ activate(LV2_Handle instance) {
     //~ * looper -> start = 0 ;
     //~ * looper -> end = 0 ;
     looper -> counter = 0 ;
-    //looper -> buffer = malloc (* looper -> buffer_size_control * 16) ;
+    looper -> recorded = 0 ;
+    
+    //~ looper -> buffer = malloc (* looper -> buffer_size_control * 1024) ;
+    //~ looper -> buffer_size = * looper -> buffer_size_control  ;
     looper -> buffer_size = MAX_BUFFER ;
+    //~ LOGD ("allocating buffer size: %f", * looper -> buffer_size_control);
     looper -> buffer [0] = 1 ;
-    for (int i = 0 ; i < MAX_BUFFER; i ++)
+    for (int i = 0 ; i < looper -> buffer_size; i ++)
         looper -> buffer [i] = -1 ;
 }
 
@@ -146,6 +151,7 @@ run(LV2_Handle instance, uint32_t n_samples)
 	const float* const input  = looper->input;
 	float* const       output = looper->output;
     const float coef = DB_CO(* looper -> gain);
+    float start = 0, end = 0 ;
     
     //~ LOGD ("gain %f\tstart %f\tend %f", gain, *looper -> start, *looper -> end);
 
@@ -159,15 +165,18 @@ run(LV2_Handle instance, uint32_t n_samples)
                 // * looper -> toggle_rec = 0 ;
                 looper -> counter = 0 ;
                 //~ break ;
+            } else {
+                looper -> recorded = looper -> counter ;
             }
         }
     } else if (* looper -> toggle_play > 0) {
         for (uint32_t pos = 0; pos < n_samples; pos++) {
-            if (looper -> counter < (* looper -> start / 100) * looper -> buffer_size) {
-                looper -> counter ++ ;
-            } else if (looper -> counter > (* looper -> end / 100) * looper -> buffer_size) {
-                looper -> counter ++ ;
-            } 
+            start = (* looper -> start / 100) * looper -> recorded ;
+            if (looper -> counter < start) {
+                looper -> counter = start ;
+            } else if (looper -> counter > (* looper -> end / 100) * looper -> recorded) {
+                looper -> counter = 0;
+            }
             //~ LOGD ("[play] %d\t%d\n", looper -> counter, pos) ;
             if (looper -> buffer[looper -> counter] != -1) {
                 output[pos] = (looper -> buffer [looper -> counter] * gain ) + input [pos] ;
