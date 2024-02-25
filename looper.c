@@ -34,7 +34,7 @@
 
 /** Define a macro for converting a gain in dB to a coefficient. */
 #define DB_CO(g) ((g) > -90.0f ? powf(10.0f, (g) * 0.05f) : 0.0f)
-#define MAX_BUFFER 1024 * 512
+#define MAX_BUFFER 1024 * 1024
 
 typedef enum {
 	TOGGLE_RECORD   = 0,
