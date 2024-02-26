@@ -45,7 +45,8 @@ typedef enum {
     START = 5,
     END = 6,
 	INPUT  = 7,
-	OUTPUT = 8
+	OUTPUT = 8,
+    FILE_LOAD_SIZE = 9
 } PortIndex;
 
 typedef struct {
@@ -57,13 +58,15 @@ typedef struct {
 	const float * input;
 	float * output;
 	int * buffer_size_control ;
-	float  buffer [MAX_BUFFER+1];
-    //~ float * buffer ;
+	//~ float  buffer [MAX_BUFFER+1];
+    float * buffer ;
     float * start ;
     float * end ;
     int counter ;
     int buffer_size ;
+    int file_load_size ;
     int recorded ;
+    int bypass ;
 } Looper;
 
 static LV2_Handle
@@ -92,6 +95,7 @@ connect_port(LV2_Handle instance,
 {
 	Looper* looper = (Looper*)instance;
 	float * d ;
+    //~ LOGD ("control: %d\tvalue: %f", port, * (float *) data); 
 
 	switch ((PortIndex)port) {
 	case GAIN:
@@ -109,8 +113,23 @@ connect_port(LV2_Handle instance,
 	case TOGGLE_RECORD:
 	    looper -> toggle_rec = (float *) data ;
 	    break ;
+    case FILE_LOAD_SIZE:
+        looper -> file_load_size = * (int *) data ;
+        break ;
 	case BUFFER_SIZE:
+        break ;
+        looper -> bypass = 1 ;
 	    looper -> buffer_size_control = (int *) data ;
+        //~ if (*looper -> buffer_size_control < 128)
+            //~ *looper -> buffer_size_control = 128 ;
+        * looper -> buffer_size_control = * looper -> buffer_size_control * 1024 ;
+        LOGD ("set buffer size to %d", * looper -> buffer_size_control) ;
+        looper -> buffer_size = * looper -> buffer_size_control ;
+        looper -> buffer = malloc (sizeof (int) * (looper -> buffer_size + 1)) ;
+        for (int i = 0 ; i < looper -> buffer_size; i ++)
+            looper -> buffer [i] = 0 ;
+
+        looper -> bypass = 0 ;
 	    break ;
 	case START:
 	    looper -> start = (float *) data ;
@@ -120,18 +139,19 @@ connect_port(LV2_Handle instance,
 	    break ;
 	case TOGGLE_FILE:
 	    d = (float *) data ;
-	    LOGD ("buffer size: %d", *looper -> buffer_size_control);
-	    for (int i = 0 ; i < * looper -> buffer_size_control; i ++) {
-		looper -> buffer [i] = d [i] ;
-		looper -> recorded = i ;
-		if (i >= looper -> buffer_size)
-		    break ;
+	    LOGD ("buffer size: %d", looper -> buffer_size);
+	    for (int i = 0 ; i < looper -> file_load_size; i ++) {
+            looper -> buffer [i] = d [i] ;
+            looper -> recorded = i ;
+            //~ LOGD ("COPY SAMPLE %d", i);
+            if (i >= looper -> buffer_size)
+                break ;
 	    }
 	    
 	    LOGD ("copied %d samples", looper -> recorded);
 	    if (looper -> recorded < looper -> buffer_size) {
 		for (int i = looper -> recorded ; i < looper -> buffer_size ; i ++) {
-		    looper -> buffer [i] = -1;
+		    looper -> buffer [i] = 0;
 		}
 	    }
 	    
@@ -149,20 +169,36 @@ activate(LV2_Handle instance) {
     //~ * looper -> end = 0 ;
     looper -> counter = 0 ;
     looper -> recorded = 0 ;
-    
-    //~ looper -> buffer = malloc (* looper -> buffer_size_control * 1024) ;
-    //~ looper -> buffer_size = * looper -> buffer_size_control  ;
+    looper -> bypass = 0 ;
+
+    looper -> buffer = malloc (sizeof (int) * (MAX_BUFFER + 1)) ;
     looper -> buffer_size = MAX_BUFFER ;
-    //~ LOGD ("allocating buffer size: %f", * looper -> buffer_size_control);
-    looper -> buffer [0] = 1 ;
     for (int i = 0 ; i < looper -> buffer_size; i ++)
-        looper -> buffer [i] = -1 ;
+        looper -> buffer [i] = 0 ;
+    //~ looper -> buffer_size = * looper -> buffer_size_control  ;
+    //~ LOGD ("allocating buffer size: %f", * looper -> buffer_size_control);
 }
 
 static void
 run(LV2_Handle instance, uint32_t n_samples)
 {
 	Looper * looper = (Looper *)instance;
+
+    if (looper -> bypass)
+        return ;
+
+    // warning: The following is severely looked down upon
+    /*
+    if (*looper -> buffer_size_control != looper -> buffer_size ) {
+        *looper -> buffer_size_control = * looper->buffer_size_control * 1024 ;
+        LOGD ("WARNING Reallocating buffer to %d wtf dude do you even audio engineer", *looper -> buffer_size_control);
+        looper -> buffer_size = * looper -> buffer_size_control ;
+        free (looper -> buffer);
+        looper -> buffer = malloc (sizeof (int) * (looper -> buffer_size + 1)) ;
+        for (int i = 0 ; i < looper -> buffer_size; i ++)
+            looper -> buffer [i] = 0 ;
+    }
+    */
 
 	const float        gain   = *(looper->gain);
 	const float* const input  = looper->input;
