@@ -39,14 +39,14 @@
 typedef enum {
 	TOGGLE_RECORD   = 0,
 	TOGGLE_PLAY = 1,
-	TOGGLE_FILE = 2,
+	TOGGLE_FILE = 100,
 	GAIN = 3,
 	BUFFER_SIZE = 4,
     START = 5,
     END = 6,
 	INPUT  = 7,
 	OUTPUT = 8,
-    FILE_LOAD_SIZE = 9
+    FILE_LOAD_SIZE = 99
 } PortIndex;
 
 typedef struct {
